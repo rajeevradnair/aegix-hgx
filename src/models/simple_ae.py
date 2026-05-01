@@ -33,9 +33,11 @@ optimizer = optim.Adam(model.parameters(), lr=0.01)
 
 # "Normal" behavior: mostly 1s
 normal_data = torch.ones((100, input_dim)) 
+#normal_data = torch.rand((100, input_dim)) 
+print(f'Normal behavor is mostly : {normal_data}')
 
 # 3. Training Loop
-print("Starting model training on normal behavior...")
+print("\nStarting model training on normal behavior...")
 for epoch in range(100):
     optimizer.zero_grad()
     output = model(normal_data)
@@ -65,22 +67,17 @@ std = torch.std(baseline_tensor)
 threshold = mu + (3 * std) 
 print(f"Baseline mean of Reconstruction Error: {mu:.6f}")
 print(f"Baseline std dev of Reconstruction Error: {std:.6f}")
-print(f"Baseline threshold of Reconstruction Error: {threshold:.6f}")
+print(f"Threshold for anomalous detection set to: {threshold:.6f}")
 
 # 4. The Detection Test
 print("\nStarting Inferences ... Testing for anomaly detection")
-ground_truth_normal = torch.ones((1, input_dim))
 ground_truth_anomaly = torch.rand((1, input_dim)) # Random "messy" data
 
 with torch.no_grad():
-    reconstructed_normal = model(ground_truth_normal)
-    reconstructed_anomaly = model(ground_truth_anomaly)
-    
-    error_normal = criterion(reconstructed_normal, ground_truth_normal)
+    reconstructed_anomaly = model(ground_truth_anomaly)    
     error_anomaly = criterion(reconstructed_anomaly, ground_truth_anomaly)
 
-print(f"Normal Data Reconstruction Error: {error_normal.item():.6f}")
 print(f"Anomalous Data Reconstruction Error: {error_anomaly.item():.6f}")
 
 if error_anomaly > threshold:
-    print("STATUS: Anomaly Successfully Detected!")
+    print(f"STATUS: Anomaly Successfully Detected: {ground_truth_anomaly}")
