@@ -69,7 +69,7 @@ print(f"Baseline mean of Reconstruction Error: {mu:.6f}")
 print(f"Baseline std dev of Reconstruction Error: {std:.6f}")
 print(f"Threshold for anomalous detection set to: {threshold:.6f}")
 
-# 4. The Detection Test
+# 5. The Detection Test
 print("\nStarting Inferences ... Testing for anomaly detection")
 ground_truth_anomaly = torch.rand((1, input_dim)) # Random "messy" data
 
