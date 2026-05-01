@@ -1,0 +1,3 @@
+Aegis-HGX: Autonomous Zero-Trust Defense
+The Problem: Modern "Low and Slow" cyber-attacks bypass traditional threshold-based detectors by blending into the noise of network traffic.
+The Vision: Aegis-HGX utilizes Temporal Heterogeneous Graph Neural Networks (T-HGNN) to model network entities (Users, Hosts, Processes) as a living, breathing ecosystem. By training against an internal Adversarial Red-Team agent, Aegis-HGX builds a self-healing defense boundary.
