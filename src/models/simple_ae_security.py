@@ -35,7 +35,7 @@ input_dim = len(feature_names)
 
 
 # ------------------------------------------------------------
-# 2. Create normal cybersecurity behavior data
+# 2. Create "normal" cybersecurity behavior data
 # ------------------------------------------------------------
 # These rows are intentionally boring.
 # They represent normal workstation/user behavior.
@@ -113,11 +113,6 @@ class SimpleAE(nn.Module):
 
         # Decoder:
         # 2 bottleneck values -> 5 hidden values -> 10 reconstructed features
-        #
-        # Notice:
-        # We do NOT use Sigmoid here.
-        # Why?
-        # Because standardized values can be negative or greater than 1.
         self.decoder = nn.Sequential(
             nn.Linear(2, 5),
             nn.ReLU(),
@@ -231,7 +226,12 @@ for idx in range(len(normal_data), len(all_data_scaled)):
     x = all_data_scaled[idx]
     x_hat = reconstructed_all_data_scaled[idx]
 
+    # per-feature errors are being calculated on scaled data only 
+    # for the purposes of sorting the indices to find the dominant features
     per_feature_error = (x - x_hat) ** 2
+    #print("***", x)
+    #print("***", x_hat)
+    #print("***", per_feature_error)
 
     print(f"\nExample {idx}: {labels[idx]}")
     print(f"Overall reconstruction error: {row_errors[idx].item():.6f}")
@@ -239,8 +239,6 @@ for idx in range(len(normal_data), len(all_data_scaled)):
 
     # Sort feature errors from largest to smallest
     sorted_indices = torch.argsort(per_feature_error, descending=True)
-
-    print("***", sorted_indices)
 
     for feature_idx in sorted_indices:
         feature_idx = feature_idx.item()
