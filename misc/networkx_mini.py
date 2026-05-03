@@ -30,6 +30,11 @@ G.add_node("external_ip_8.8.8.8", node_type="ExternalIP", country="US")
 G.add_node("external_ip_185.10.10.10", node_type="ExternalIP", country="Unknown")
 
 # -----------------------------
+# Add files
+# -----------------------------
+G.add_node("sensitive_file_payroll.csv", node_type="file")
+
+# -----------------------------
 # Add relationships
 # -----------------------------
 G.add_edge("alice", "laptop_01", relation="logs_into")
@@ -46,6 +51,9 @@ G.add_edge("unknown.exe", "external_ip_185.10.10.10", relation="connects_to")
 G.add_edge("bob", "server_01", relation="accesses")
 G.add_edge("unknown.exe", "server_01", relation="touches")
 
+G.add_edge("uknown.exe", "sensitive_file_payroll.csv", relation="writes_file")
+G.add_edge("powershell.exe", "external_ip_185.10.10.10", relation="connects_to")
+
 print(f"Number of nodes: {G.number_of_nodes()}")
 print(f"Number of edges: {G.number_of_edges()}")
 
@@ -57,7 +65,7 @@ print("\nEdges:")
 for src, dst, attrs in G.edges(data=True):
     print(f"{src:30} -> {dst:30s} {attrs}")
 
-
+'''
 # -----------------------------
 # Visualize graph
 # -----------------------------
@@ -122,3 +130,45 @@ plt.title("Aegis-HGX Mini Cybersecurity Graph")
 plt.axis("off")
 plt.tight_layout()
 plt.show()
+'''
+
+print("\nPredecessors & Successors:")
+
+#print(list(G.successors("laptop_01")))
+#print(list(G.predecessors("server_01")))
+
+noi=[n for n, attr in G.nodes(data=True) if attr.get("node_type") in ("Host", "ExternalIP") ]
+for n in noi:
+    ps=list(G.predecessors(n))
+    for p in ps:
+        print(f"{p} points to {n}")
+
+noi=[n for n, attr in G.nodes(data=True) if attr.get("node_type")=="User" ]
+for n in noi:
+    ss=list(G.successors(n))
+    for s in ss:
+        print(f"{n} points to {s}")
+
+print("\nPath from bob to external suspicious IP:")
+
+path = nx.shortest_path(
+    G,
+    source="bob",
+    target="external_ip_185.10.10.10"
+)
+print(path)
+
+print(nx.shortest_path(G, "alice", "external_ip_185.10.10.10"))
+
+print("\nAdjacency Matrix:")
+nodes=list(G.nodes())
+adj_matrix=nx.to_numpy_array(G, nodelist=nodes)
+
+print("Node order:")
+for i, node in enumerate(nodes):
+    print(i, node)
+
+print(adj_matrix)
+
+print("\nNeighbors of a node:")
+print(list(G.neighbors("laptop_01")))
