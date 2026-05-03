@@ -1,0 +1,8 @@
+0: is_user
+1: is_host
+2: is_process
+3: is_external_ip
+4: is_file
+5: risk_score
+6: is_signed
+7: is_sensitive

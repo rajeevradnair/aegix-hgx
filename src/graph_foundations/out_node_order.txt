@@ -1,0 +1,11 @@
+0: alice
+1: bob
+2: laptop_01
+3: laptop_02
+4: server_01
+5: chrome.exe
+6: powershell.exe
+7: unknown.exe
+8: external_ip_8.8.8.8
+9: external_ip_185.10.10.10
+10: payroll.csv
