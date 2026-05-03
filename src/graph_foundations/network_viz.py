@@ -43,6 +43,7 @@ G.add_node("bob", node_type="User", risk_score=0.35, department="Finance")
 G.add_node("laptop_01", node_type="Host", os="Windows", criticality="Medium")
 G.add_node("laptop_02", node_type="Host", os="Windows", criticality="Medium")
 G.add_node("server_01", node_type="Host", os="Linux", criticality="High")
+G.add_node("server_backup_01", node_type="Host", os="Linux", criticality="High")
 
 # -----------------------------
 # Processes
@@ -80,6 +81,9 @@ G.add_edge("bob", "laptop_02", relation="logs_into", timestamp="11:00")
 G.add_edge("laptop_02", "unknown.exe", relation="runs", timestamp="11:03")
 G.add_edge("unknown.exe", "external_ip_185.10.10.10", relation="connects_to", timestamp="11:04")
 G.add_edge("unknown.exe", "payroll.csv", relation="writes_file", timestamp="11:06")
+
+G.add_edge("unknown.exe", "server_backup_01", relation="touches", timestamp="11:13")
+
 
 # Server access
 G.add_edge("bob", "server_01", relation="accesses", timestamp="11:10")
