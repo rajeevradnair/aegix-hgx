@@ -1,1 +1,156 @@
+# ============================================================
+# Python
+# ============================================================
+
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+
+# ============================================================
+# Jupyter / notebooks
+# ============================================================
+
+.ipynb_checkpoints/
+
+
+# ============================================================
+# Local environment and secrets
+# ============================================================
+
+.env
+.env.*
+*.env
+secrets/
+credentials/
+*.pem
+*.key
+*.crt
+
+# AWS credentials should never be committed
+.aws/
+aws_credentials*
+credentials.csv
+
+
+# ============================================================
+# Data files
+# ============================================================
+
+data/raw/
+data/external/
+data/interim/
+
+# Keep processed folder structure if needed, but ignore generated files
+data/processed/*.csv
+data/processed/*.json
+data/processed/*.pt
+data/processed/*.parquet
+
+# Large datasets
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.npy
+*.npz
+
+
+# ============================================================
+# Model artifacts
+# ============================================================
+
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.pkl
+*.joblib
+models/
+checkpoints/
+artifacts/
+
+
+# ============================================================
+# Release outputs
+# ============================================================
+
+releases/*/release_*_anomaly_scores.csv
+releases/*/release_*_metrics.json
+releases/*/training_history.json
+
+# Keep release reports if you want portfolio-visible documentation
+# Do NOT ignore:
+# releases/*/release_*_report.md
+
+
+# ============================================================
+# Logs and outputs
+# ============================================================
+
+logs/
+*.log
+outputs/
+runs/
+wandb/
+mlruns/
+
+
+# ============================================================
+# OS / editor files
+# ============================================================
+
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+
+
+# ============================================================
+# Terraform / AWS infra later
+# ============================================================
+
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+terraform.tfvars.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+
+# ============================================================
+# Docker / local temp
+# ============================================================
+
+*.tar
+*.tar.gz
+tmp/
+temp/
+.cache/
+
 misc/

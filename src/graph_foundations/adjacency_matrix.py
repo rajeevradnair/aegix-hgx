@@ -74,6 +74,10 @@ G.add_edge("unknown.exe", "payroll.csv", relation="writes_file")
 G.add_edge("bob", "server_01", relation="accesses")
 G.add_edge("unknown.exe", "server_01", relation="touches")
 
+#print(G.nodes())
+#print(G.nodes(data=True))
+#print(G.edges())
+#print(G.edges(data=True))
 
 # ============================================================
 # 2. Fix node order
@@ -83,9 +87,9 @@ G.add_edge("unknown.exe", "server_01", relation="touches")
 
 nodes = list(G.nodes())
 
-print("\n================ NODE ORDER ================")
+print("\n================ Node order ================")
 for idx, node in enumerate(nodes):
-    print(f"{idx:2d}: {node}")
+    print(f"{idx:2d}: {node:25s} : {G.nodes[node]}")
 
 
 # ============================================================
@@ -105,8 +109,6 @@ print("A[i][j] = 1 means node_i points to node_j.")
 # ============================================================
 # 4. Manually verify a few edges
 # ============================================================
-
-
 def explain_edge(src, dst):
     src_idx = nodes.index(src)
     dst_idx = nodes.index(dst)
@@ -224,15 +226,13 @@ print(G.nodes())
 print(G.edges())
 
 print("\n================ Build the Node feature matrix X ================")
-#print("Features for the nodes:")
-#print(f"{' ':25s}", feature_names)
+print("Features for the nodes:")
+print(f"{' '}", feature_names)
 X_rows = []
 for node in nodes:
     X_rows.append(get_features_for_node(node, G.nodes[node]))
-    #print(f"{node:25s}", X_rows[-1])
-
+    print(f"{node:25s}", X_rows[-1])
 X=np.array(X_rows, dtype=np.float32)
-print(X.shape, "\n", X)
 
 print("\n================ Readable node features ================")
 
@@ -259,13 +259,12 @@ for node in nodes:
 # ============================================================
 # 8. Identify risky nodes using simple rules
 # ============================================================
-
 print("\n================ Simple risk check ================")
 
 risk_col = feature_names.index("risk_score")
 for node_idx, node in enumerate(nodes):
     risk = X[node_idx][risk_col]
-    if risk >= 0.80:
+    if risk >= 0.80: #threshold for high risk
         print(f"High-risk node: {node:28s} | risk_score={risk:.2f}")
 
 # ============================================================
@@ -276,7 +275,6 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 np.save(os.path.join(script_dir, "out_adjacency_matrix_A.npy"), A)
 np.save(os.path.join(script_dir, "out_node_feature_matrix_X.npy"), X)
-
 
 file_path=os.path.join(script_dir, "out_node_order.txt")
 with open(file_path, "w") as f:

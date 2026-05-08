@@ -274,7 +274,7 @@ nx.draw_networkx_edge_labels(
     font_size=8,
 )
 
-plt.title("Aegis-HGX Day 3: Mock Cybersecurity Graph", fontsize=16)
+plt.title("Mock Cybersecurity Graph", fontsize=16)
 plt.axis("off")
 plt.tight_layout()
 
