@@ -4,7 +4,6 @@ import torch.optim as optim
 
 
 # ============================================================
-# Aegis-HGX Day 2
 # Autoencoder Reconstruction Error for Cybersecurity Anomalies
 # ============================================================
 
@@ -157,9 +156,8 @@ for epoch in range(epochs):
 # ------------------------------------------------------------
 print("\nCalculating normal reconstruction error baseline...")
 
-model.eval()
 baseline_losses = []
-
+model.eval()
 with torch.no_grad():
     for x in normal_scaled:
         reconstruction = model(x)
