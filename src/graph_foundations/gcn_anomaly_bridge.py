@@ -7,6 +7,7 @@ from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv
 
 
+# Build my directed graph with node, node attributes, edge, edge attribute, node<>node relations
 G = nx.DiGraph()
 
 G.add_node("alice", node_type="User", risk_score=0.10)
@@ -40,9 +41,10 @@ G.add_edge("unknown.exe", "payroll.csv", relation="writes_file")
 G.add_edge("bob", "server_01", relation="accesses")
 G.add_edge("unknown.exe", "server_01", relation="touches")
 
-
+#Take a snapshot of the nodes in the graph
 nodes = list(G.nodes())
 
+# Create node_id <> node_name mappings
 node_to_id = {node: idx for idx, node in enumerate(nodes)}
 id_to_node = {idx: node for node, idx in node_to_id.items()}
 
@@ -50,7 +52,8 @@ print("\n================ NODE ORDERING ================")
 for idx, node in id_to_node.items():
     print(f"{idx:2d}: {node}")
 
-
+#Build node feature matrix from node attributes
+#Only 2 features being considered 1) node type (one-hot encoded) and 2) risk score
 node_types = ["User", "Host", "Process", "ExternalIP", "File"]
 
 def build_node_feature_vector(node_attrs):
@@ -67,7 +70,6 @@ def build_node_feature_vector(node_attrs):
 
     return one_hot_type + [risk_score]
 
-
 feature_rows = []
 
 for node in nodes:
@@ -81,20 +83,25 @@ print("\n================ NODE FEATURES ================")
 print("x shape:", x.shape)
 print(x)
 
-
+#Build (2 x num_edges) dimension edge-index matrix from the graph edges
 source_ids = []
 target_ids = []
 
 for src, dst in G.edges():
     source_ids.append(node_to_id[src])
     target_ids.append(node_to_id[dst])
-
+# edge_index is a 2 x num_edges tensor where:
+# - the first row contains source node IDs
+# - the second row contains target node IDs
 edge_index = torch.tensor([source_ids, target_ids], dtype=torch.long)
 
 print("\n================ EDGE INDEX ================")
 print("edge_index shape:", edge_index.shape)
 print(edge_index)
 
+#Determine labels (i.e. ground truth) for each node in nodes list based on whether they are anomalous or not
+#Anomalous nodes are coded with 1
+#Normal nodes are coded with 0
 
 anomalous_nodes = {
     "unknown.exe",
@@ -117,12 +124,16 @@ for idx, label in enumerate(y):
     print(f"{idx:2d}: {id_to_node[idx]:28s} label={label.item()}")
 
 
+#Create PyG Data object from node feature matrix, edge index matrix and labels vector
 data = Data(x=x, edge_index=edge_index, y=y)
 
 print("\n================ PYG DATA OBJECT ================")
 print(data)
 
 
+#My simple GCN model with 3 layers - Conv -> ReLU -> Conv
+#Layer 1: input dimension = number of features of each node, output dimension = hidden dimension
+#Layer 2: input dimension = hidden dimension, output dimension = output dimension (2 for logits)
 class SimpleGCN(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim):
         super(SimpleGCN, self).__init__()
@@ -141,13 +152,15 @@ class SimpleGCN(nn.Module):
             return logits, hidden
         return logits
 
-
+#Create the NN model, define the loss function and Adam optimizer
 input_dim = data.num_node_features
 hidden_dim = 8
 output_dim = 2
 
 model = SimpleGCN(input_dim, hidden_dim, output_dim)
 
+#Since logits for each class are being returned from the model, we can use CrossEntropyLoss which combines LogSoftmax and NLLLoss in one single class. 
+#Two logits returned where the fist logit corresponds to the normal class and the second logit corresponds to the anomalous class. 
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
@@ -158,12 +171,13 @@ print(model.conv1.lin.weight)
 
 print("\n================ TRAINING ================")
 
+#Train the model
 for epoch in range(201):
     model.train()
 
     optimizer.zero_grad()
 
-    logits = model(data)
+    logits = model(data) #pass the PyG Data object to the model's forward pass to get logits [normal_class, anomalous_class ] for each node
 
     loss = criterion(logits, data.y)
 
@@ -185,19 +199,19 @@ for epoch in range(201):
 
 print("\n================ FINAL PREDICTIONS ================")
 
+# Evaluate the model and print predictions, probabilities and hidden embeddings for each node
 model.eval()
 
 with torch.no_grad():
     logits, hidden_embedding = model(data, return_embeddings=True)
+    #logits being converted into probabilities using softmax function where the first column corresponds to the normal class and the second column corresponds to the anomalous class
     probabilities = F.softmax(logits, dim=1)
+    #The predicted class for each node is the one with the highest probability value (either normal or anomalous)
     predictions = probabilities.argmax(dim=1)
 
-#print(logits)
-#print(probabilities)
-#print(data.y)
-#print(predictions)
 print(data.num_node_features, hidden_embedding.shape)
 
+# Print node,node features, hidden embeddings for each node in the graph
 print("\n================ NODE_FEATURES & NODE HIDDEN EMBEDDINGS ================")
 for idx, node in enumerate(nodes):
     print("-" * 60)
@@ -207,11 +221,12 @@ for idx, node in enumerate(nodes):
     print(f"Hidden embedding:")
     print(f"  {hidden_embedding[idx]}")
 
+# Print node,node features, hidden embeddings for each node in the graph
 for idx in range(data.num_nodes):
     node_name = id_to_node[idx]
     true_label = data.y[idx].item()
     pred_label = predictions[idx].item()
-    anomaly_probability = probabilities[idx, 1].item()
+    anomaly_probability = probabilities[idx, 1].item() # What is the probability of the node being anomalous according to the model?
 
     print(
         f"{idx:2d}: {node_name:28s} | "
@@ -220,6 +235,7 @@ for idx in range(data.num_nodes):
     )
 
 
+#Determine a manual contextual risk score for each node based on its own risk score and the average risk score of its outgoing neighbors (i.e. Successors).
 print("\n================ MANUAL CONTEXTUAL RISK ================")
 
 manual_contextual_risk = {}
@@ -229,7 +245,7 @@ for node in nodes:
     outgoing_neighbors = list(G.successors(node))
 
     if len(outgoing_neighbors) == 0:
-        contextual_risk = own_risk
+        contextual_risk = own_risk #No outgoing neighbors, hence contextual risk is just the node's own risk score
     else:
         neighbor_risks = []
 
@@ -237,9 +253,9 @@ for node in nodes:
             neighbor_risk = G.nodes[neighbor]["risk_score"]
             neighbor_risks.append(neighbor_risk)
 
-        avg_neighbor_risk = sum(neighbor_risks) / len(neighbor_risks)
+        avg_neighbor_risk = sum(neighbor_risks) / len(neighbor_risks) #Average risk score of the outgoing neighbors
 
-        contextual_risk = 0.5 * own_risk + 0.5 * avg_neighbor_risk
+        contextual_risk = 0.5 * own_risk + 0.5 * avg_neighbor_risk #Combine the node's own risk score and the average risk score of its outgoing neighbors to get a contextual risk score for the node
 
     manual_contextual_risk[node] = contextual_risk
 
@@ -268,8 +284,8 @@ for idx, node in id_to_node.items():
     
     print(
         f"{node:30s} | "
-        f"own={own_risk:.2f} | "
-        f"context={contextual_risk:.3f} | "
-        f"gcn_prob={anomaly_probability:.3f} | "
-        f"true={true_label} | pred={prediction}"
+        f"own={own_risk:.2f} | "                    #print the node's own risk score
+        f"context={contextual_risk:.3f} | "         #print the node's manual contextual risk score
+        f"gcn_prob={anomaly_probability:.3f} | "    #print the node's anomaly probability according to the GCN model
+        f"true={true_label} | pred={prediction}"    #print the node's true label and predicted label according to the GCN model
     )
