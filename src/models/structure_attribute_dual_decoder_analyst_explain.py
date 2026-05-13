@@ -6,6 +6,7 @@ import networkx as nx
 from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv
 
+
 torch.manual_seed(42)
 
 
@@ -54,7 +55,6 @@ for idx, node in id_to_node.items():
 
 
 node_types = ["User", "Host", "Process", "ExternalIP", "File"]
-
 
 def build_node_feature_vector(node_attrs):
     node_type = node_attrs["node_type"]
@@ -120,27 +120,19 @@ class StructureAttributeAutoencoder(nn.Module):
             nn.Linear(hidden_dim, input_dim),
         )
 
-    #Encoding node feature matrix through the two GCNConv layers
     def encode(self, x, edge_index):
-        hidden = self.encoder_conv1(x, edge_index) #edge index is 2nd argument
+        hidden = self.encoder_conv1(x, edge_index)
         hidden = F.relu(hidden)
 
-        z = self.encoder_conv2(hidden, edge_index) #edge index is 2nd argument
+        z = self.encoder_conv2(hidden, edge_index)
 
-        return z #embedding
+        return z
 
     def decode_attributes(self, z):
-        #attribute decoder is essentially the forward pass in the reverse direction
-        x_hat = self.attribute_decoder(z) 
+        x_hat = self.attribute_decoder(z)
         return x_hat
 
     def decode_structure(self, z):
-        # *** Intuition is that if two nodes have compatible embeddings in the latent space, 
-        # maybe there should be an edge between them. ***
-        # The torch.sigmoid(z @ z.T) in GCN link prediction converts raw inner-product similarity scores 
-        # (ranging from \(-\infty \) to \(+\infty \)) into a 0–1 probability space, effectively interpreting 
-        # the output as the likelihood of an edge existing. 
-        # While raw inner product isn't a perfect binary indicator, it acts as a differentiable approximation.
         a_hat = torch.sigmoid(z @ z.T)
         return a_hat
 
@@ -149,7 +141,6 @@ class StructureAttributeAutoencoder(nn.Module):
         x_hat = self.decode_attributes(z)
         a_hat = self.decode_structure(z)
 
-        # Return vector embedding, reconstructed node feature matrix, reconstructed adjacency matrix
         return z, x_hat, a_hat
 
 
@@ -171,7 +162,7 @@ print(model)
 
 print("\n================ TRAINING ================")
 
-for epoch in range(5001):
+for epoch in range(301):
     model.train()
 
     optimizer.zero_grad()
@@ -186,7 +177,6 @@ for epoch in range(5001):
     total_loss.backward()
     optimizer.step()
 
-    '''
     if epoch % 50 == 0:
         print(
             f"Epoch {epoch:03d} | "
@@ -194,20 +184,6 @@ for epoch in range(5001):
             f"attribute_loss={attribute_loss.item():.4f} | "
             f"structure_loss={structure_loss.item():.4f}"
         )
-    '''
-
-print("\n================ Errors ================")
-print("\nFeature reconstruction absolute error:")
-print(torch.abs(x - x_hat))
-
-print("\nMean feature reconstruction error:")
-print(torch.mean((x - x_hat) ** 2).item())
-
-print("\Adjacency matrix reconstruction absolute error:")
-print(torch.abs(a - a_hat))
-
-print("\nMean Adjacency matrix reconstruction error:")
-print(torch.mean((a - a_hat) ** 2).item())
 
 
 print("\n================ NODE ANOMALY SCORES ================")
@@ -220,15 +196,10 @@ with torch.no_grad():
     attribute_errors = torch.mean((x - x_hat) ** 2, dim=1)
     structure_errors = torch.mean((a - a_hat) ** 2, dim=1)
 
-    alpha = 0.2
+    alpha = 0.5
     anomaly_scores = alpha * structure_errors + (1 - alpha) * attribute_errors
 
-# print(f"Anomaly score: {anomaly_scores}")
-
 sorted_indices = torch.argsort(anomaly_scores, descending=True)
-
-# print(f"Node indices descending order of anomaly score: {sorted_indices}")
-
 
 for rank, idx in enumerate(sorted_indices):
     idx = idx.item()
@@ -237,36 +208,37 @@ for rank, idx in enumerate(sorted_indices):
     print(
         f"rank={rank+1:2d} | "
         f"node={node_name:28s} | "
-        f"anomaly score={anomaly_scores[idx].item():.6f} | "
+        f"score={anomaly_scores[idx].item():.6f} | "
         f"attr_error={attribute_errors[idx].item():.6f} | "
         f"struct_error={structure_errors[idx].item():.6f}"
     )
 
-print("\n================ TOP RISKY EXISTING EDGES ================")
 
-edge_error_rows = []
+print("\n================ EDGE-LEVEL STRUCTURE EXPLANATIONS ================")
 
 edge_errors = (a - a_hat) ** 2
 
-print(f"Edge errors: {edge_errors}")
+edge_error_rows = []
 
 for src, dst in G.edges():
     src_id = node_to_id[src]
     dst_id = node_to_id[dst]
 
     relation = G.edges[src, dst]["relation"]
-    predicted_edge_prob = a_hat[src_id, dst_id].item()
-    error = edge_errors[src_id, dst_id].item()
 
-    edge_error_rows.append(
-        {
-            "src": src,
-            "relation": relation,
-            "dst": dst,
-            "predicted_prob": predicted_edge_prob,
-            "edge_error": error,
-        }
-    )
+    actual_edge = a[src_id, dst_id].item()
+    predicted_probability = a_hat[src_id, dst_id].item()
+    edge_error = edge_errors[src_id, dst_id].item()
+
+    edge_error_rows.append({
+        "src": src,
+        "relation": relation,
+        "dst": dst,
+        "actual_edge": actual_edge,
+        "predicted_probability": predicted_probability,
+        "edge_error": edge_error,
+    })
+
 
 edge_error_rows = sorted(
     edge_error_rows,
@@ -278,9 +250,24 @@ for rank, row in enumerate(edge_error_rows, start=1):
     print(
         f"rank={rank:2d} | "
         f"{row['src']:28s} -[{row['relation']:12s}]-> {row['dst']:28s} | "
-        f"predicted_prob={row['predicted_prob']:.4f} | "
+        f"predicted_prob={row['predicted_probability']:.4f} | "
         f"edge_error={row['edge_error']:.6f}"
     )
+
+
+print("\n================ ANALYST-STYLE EXPLANATIONS ================")
+
+top_k = 3
+
+for row in edge_error_rows[:top_k]:
+    print(
+        f"The model flagged the action "
+        f"'{row['src']} {row['relation']} {row['dst']}' "
+        f"because this existing edge had high reconstruction error "
+        f"({row['edge_error']:.6f}) and low predicted probability "
+        f"({row['predicted_probability']:.4f})."
+    )
+
 
 torch.save(
     {
@@ -289,8 +276,11 @@ torch.save(
         "node_to_id": node_to_id,
         "id_to_node": id_to_node,
         "anomaly_scores": anomaly_scores,
+        "attribute_errors": attribute_errors,
+        "structure_errors": structure_errors,
+        "edge_error_rows": edge_error_rows,
     },
-    "structure_attribute_model.pt",
+    "edge_explanation_model.pt",
 )
 
-print("\nSaved model artifacts to structure_attribute_model.pt")
+print("\nSaved model artifacts to edge_explanation_model.pt")
