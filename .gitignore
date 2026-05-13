@@ -85,7 +85,6 @@ data/processed/*.parquet
 *.onnx
 *.pkl
 *.joblib
-models/
 checkpoints/
 artifacts/
 
